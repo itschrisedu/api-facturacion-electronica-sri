@@ -1,7 +1,7 @@
-import { ClaveAccesoService } from './clave-acceso.service';
-import { Ambiente, TipoEmision, TipoComprobante } from '../constants';
+import { ClaveAccesoService } from '../../../src/modules/sri/services/clave-acceso.service';
+import { Ambiente, TipoEmision, TipoComprobante } from '../../../src/modules/sri/constants';
 
-describe('ClaveAccesoService', () => {
+describe('ClaveAccesoService Unit Tests', () => {
   let service: ClaveAccesoService;
 
   beforeEach(() => {
@@ -77,8 +77,6 @@ describe('ClaveAccesoService', () => {
         baseData;
       const clave1 = service.generate(dataWithoutCodigo);
       const clave2 = service.generate(dataWithoutCodigo);
-      // Las claves deben diferir (muy alta probabilidad con crypto.randomInt)
-      // Pero ambas deben tener 49 dígitos
       expect(clave1).toHaveLength(49);
       expect(clave2).toHaveLength(49);
     });
@@ -134,7 +132,6 @@ describe('ClaveAccesoService', () => {
         codigoNumerico: '87654321',
         tipoEmision: TipoEmision.NORMAL,
       });
-      // Modificar el último dígito
       const claveAlterada =
         clave.substring(0, 48) + ((parseInt(clave.charAt(48)) + 1) % 10);
       expect(service.validate(claveAlterada)).toBe(false);

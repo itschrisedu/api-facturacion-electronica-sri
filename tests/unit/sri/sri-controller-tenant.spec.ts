@@ -4,7 +4,7 @@
  * y que los endpoints de consulta aplican filtros de tenant.
  */
 
-describe('SriController — Tenant Isolation', () => {
+describe('SriController — Tenant Isolation Unit Tests', () => {
   describe('validateClaveAccesoAccess (lógica de extracción de RUC)', () => {
     it('debe extraer RUC correctamente de posiciones 10-23 de la clave', () => {
       // Clave de acceso real: 0702202601092438363100110010010000000161245294013
@@ -23,17 +23,12 @@ describe('SriController — Tenant Isolation', () => {
 
   describe('listarComprobantes — filtro de tenant', () => {
     it('debe filtrar por emisorIds cuando usuario no es SUPERADMIN y no pasa rucEmisor', () => {
-      // Este test verifica la lógica de negocio:
-      // Si user.rol !== 'SUPERADMIN' y no hay query.rucEmisor,
-      // el controller debe buscar emisores del tenant y pasar emisorIds al servicio
       const user = {
         sub: 'user-123',
         rol: 'ADMIN',
         tenantId: 'tenant-abc',
       };
 
-      // Simulación: el resultado esperado es que se llame a findByTenantId
-      // y que se pasen los IDs de emisores del tenant como filtro
       expect(user.rol).not.toBe('SUPERADMIN');
       expect(user.tenantId).toBeDefined();
     });
@@ -45,7 +40,6 @@ describe('SriController — Tenant Isolation', () => {
         tenantId: null,
       };
 
-      // SUPERADMIN pasa directo sin filtro de emisorIds
       expect(user.rol).toBe('SUPERADMIN');
     });
   });
@@ -55,7 +49,6 @@ describe('SriController — Tenant Isolation', () => {
       const body = { estados: ['PENDIENTE'], reintentar: false, limite: 50 };
       const user = { sub: 'user-1', rol: 'ADMIN', tenantId: 'tenant-1' };
 
-      // La lógica del controller rechaza si user.rol !== 'SUPERADMIN' y !body.rucEmisor
       expect(user.rol).not.toBe('SUPERADMIN');
       expect((body as any).rucEmisor).toBeUndefined();
     });
@@ -64,7 +57,6 @@ describe('SriController — Tenant Isolation', () => {
       const user = { sub: 'admin-1', rol: 'SUPERADMIN', tenantId: null };
 
       expect(user.rol).toBe('SUPERADMIN');
-      // No se requiere body.rucEmisor para SUPERADMIN
     });
   });
 });

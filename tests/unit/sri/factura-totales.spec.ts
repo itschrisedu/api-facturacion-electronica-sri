@@ -1,4 +1,4 @@
-import { FacturaService } from './factura.service';
+import { FacturaService } from '../../../src/modules/sri/services/factura.service';
 
 /**
  * Tests unitarios para la aritmética fiscal con Decimal.js.
@@ -8,12 +8,10 @@ describe('FacturaService — calculateTotales (Decimal.js)', () => {
   let service: any;
 
   beforeEach(() => {
-    // Crear instancia mínima — calculateTotales es privado pero no depende de DI
     service = Object.create(FacturaService.prototype);
   });
 
   it('debe sumar totales sin pérdida de precisión IEEE 754', () => {
-    // 0.1 + 0.2 en JS nativo = 0.30000000000000004
     const detalles = [
       {
         precioTotalSinImpuesto: 0.1,
@@ -44,7 +42,7 @@ describe('FacturaService — calculateTotales (Decimal.js)', () => {
     ];
 
     const result = service.calculateTotales(detalles);
-    expect(result.totalSinImpuestos).toBe(0.3); // NOT 0.30000000000000004
+    expect(result.totalSinImpuestos).toBe(0.3);
     expect(result.totalDescuento).toBe(0);
   });
 
