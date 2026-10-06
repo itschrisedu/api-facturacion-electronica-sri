@@ -1,5 +1,5 @@
-import { ClaveAccesoService } from '../../src/modules/sri/services/clave-acceso.service';
-import { Ambiente, TipoEmision, TipoComprobante } from '../../src/modules/sri/constants';
+import { ClaveAccesoService } from '../../../src/modules/sri/services/clave-acceso.service';
+import { Ambiente, TipoEmision, TipoComprobante } from '../../../src/modules/sri/constants';
 
 describe('E2E / Sistema — Microservicio SRI: Recepción, Validación y Encriptación de Comprobantes', () => {
   let claveAccesoService: ClaveAccesoService;
