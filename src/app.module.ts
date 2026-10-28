@@ -11,7 +11,6 @@ import configuration from './config/configuration';
 import { EncryptionModule } from './common/services/encryption.module';
 import { AuditModule } from './common/services/audit.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
-import { QueueModule } from './common/queues/queue.module';
 import { RedisCacheModule } from './common/cache/redis-cache.module';
 
 // Database Module
@@ -94,7 +93,6 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     // Common Services
     EncryptionModule,
     AuditModule,
-    QueueModule,
     RedisCacheModule,
 
     // Database Module

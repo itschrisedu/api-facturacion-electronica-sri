@@ -5,8 +5,6 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { DatabaseService } from '../../database/database.service';
 import {
   CreateWebhookDto,
@@ -15,7 +13,6 @@ import {
   WebhookLogResponseDto,
   WebhookEvent,
 } from './dto';
-import { WebhookJobData } from './webhook.processor';
 
 @Injectable()
 export class WebhooksService {
@@ -23,7 +20,6 @@ export class WebhooksService {
 
   constructor(
     private readonly db: DatabaseService,
-    @InjectQueue('webhook-dispatch') private readonly webhookQueue: Queue,
   ) {}
 
   // =====================
@@ -296,27 +292,43 @@ export class WebhooksService {
       `Encolando evento ${evento} a ${configs.rows.length} webhook(s)`,
     );
 
-    // Encolar cada webhook como job de BullMQ
+    // Despachar cada webhook de forma asíncrona directa (sin dependencia de Redis)
     for (const config of configs.rows) {
-      const jobData: WebhookJobData = {
-        configId: config.id as string,
-        url: config.url as string,
-        secreto: config.secreto as string,
-        evento,
-        payload,
-      };
-
-      await this.webhookQueue.add(
-        `webhook-${evento}`,
-        jobData,
-        {
-          attempts: (config.reintentos_max as number) || 5,
-          backoff: {
-            type: 'exponential',
-            delay: 3000,
-          },
-        },
+      this.dispatchDirect(config, evento, payload).catch((err) =>
+        this.logger.error(`Error enviando webhook ${config.id}: ${err.message}`),
       );
+    }
+  }
+
+  private async dispatchDirect(
+    config: any,
+    evento: WebhookEvent,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    const crypto = require('crypto');
+    const body = JSON.stringify({
+      evento,
+      payload,
+      timestamp: new Date().toISOString(),
+    });
+    const signature = crypto
+      .createHmac('sha256', config.secreto)
+      .update(body)
+      .digest('hex');
+
+    try {
+      await fetch(config.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Signature': signature,
+          'X-Webhook-Event': evento,
+        },
+        body,
+        signal: AbortSignal.timeout(10000),
+      });
+    } catch (err: any) {
+      this.logger.warn(`No se pudo entregar webhook a ${config.url}: ${err.message}`);
     }
   }
 

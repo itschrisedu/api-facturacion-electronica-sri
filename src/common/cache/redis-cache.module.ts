@@ -16,12 +16,18 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       isGlobal: true,
       useFactory: async (configService: ConfigService) => {
         const logger = new Logger('RedisCacheModule');
-        const redisHost = configService.get<string>('REDIS_HOST', 'localhost');
+        const redisEnabled = configService.get<string>('REDIS_ENABLED', 'false') === 'true';
+        const redisHost = configService.get<string>('REDIS_HOST', '');
         const redisPort = configService.get<number>('REDIS_PORT', 6379);
         const redisPassword = configService.get<string>('REDIS_PASSWORD', '');
         const ttl = configService.get<number>('CACHE_TTL_SECONDS', 300);
 
-        // Intentar conectar a Redis; si falla, usar caché en memoria
+        if (!redisEnabled || !redisHost) {
+          logger.log('Caché configurado en memoria local (in-memory).');
+          return { ttl: ttl * 1000 };
+        }
+
+        // Intentar conectar a Redis solo si está explícitamente habilitado
         try {
           const { redisStore } = await import('cache-manager-ioredis-yet');
           const store = await redisStore({

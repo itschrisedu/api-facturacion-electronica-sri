@@ -4,12 +4,12 @@ export default () => ({
   // Environment
   nodeEnv: optionalEnv('NODE_ENV', 'development'),
 
-  // Server Configuration (REQUIRED)
-  port: parseInt(requireEnv('PORT'), 10),
-  publicUrl: requireEnv('PUBLIC_URL'),
+  // Server Configuration (PORT y PUBLIC_URL con defaults para Render / local)
+  port: parseInt(optionalEnv('PORT', '4000'), 10),
+  publicUrl: optionalEnv('PUBLIC_URL', 'http://localhost:4000'),
 
-  // Carbone API Configuration (REQUIRED)
-  carboneApi: requireEnv('CARBONE_API'),
+  // Carbone API Configuration (opcional para PDFs RIDE)
+  carboneApi: optionalEnv('CARBONE_API', 'http://localhost:3000'),
 
   // PDF Render Configuration (optional with sensible defaults)
   pdfRender: {
@@ -94,12 +94,12 @@ export default () => ({
     db: parseInt(optionalEnv('REDIS_DB', '0'), 10),
   },
 
-  // Directory Paths (REQUIRED)
+  // Directory Paths (con fallbacks si no se definen en Render)
   directories: {
-    templates: resolveDir(requireEnv('TEMPLATES_DIR')),
-    pdfs: resolveDir(requireEnv('PDFS_DIR')),
-    certs: resolveDir(requireEnv('CERTS_DIR')),
-    xmls: resolveDir(requireEnv('XMLS_DIR')),
+    templates: resolveDir(optionalEnv('TEMPLATES_DIR', './templates')),
+    pdfs: resolveDir(optionalEnv('PDFS_DIR', './pdfs')),
+    certs: resolveDir(optionalEnv('CERTS_DIR', './certs')),
+    xmls: resolveDir(optionalEnv('XMLS_DIR', './xmls')),
   },
 });
 

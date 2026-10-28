@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: api-facturacion-electronica-sri
+    env: node
+    plan: free
+    region: oregon
+    rootDir: api-facturacion-electronica-sri
+    buildCommand: npm install && npm run build
+    startCommand: node dist/main
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SRI_EMISION_ASYNC
+        value: "false"
+      - key: REDIS_ENABLED
+        value: "false"
+      - key: SRI_ENVIRONMENT
+        value: development
+      - key: SRI_RECEPTION_WSDL
+        value: https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?wsdl
+      - key: SRI_AUTHORIZATION_WSDL
+        value: https://celcer.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline?wsdl
+      - key: DB_HOST
+        value: ep-fragrant-darkness-ai73ojd0.c-4.us-east-1.aws.neon.tech
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        value: neondb
+      - key: DB_USER
+        value: neondb_owner
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: ENCRYPTION_SALT
+        sync: false
+

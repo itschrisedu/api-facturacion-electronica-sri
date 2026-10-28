@@ -1,6 +1,4 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { extractRucFromClaveAcceso } from './utils/clave-acceso.utils';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -46,25 +44,14 @@ export class SriService {
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
     private readonly xmlBuilder: XmlBuilderService,
-    @InjectQueue('sri-emision') private readonly emisionQueue: Queue,
   ) {}
 
   // ==========================================
   // FACTURA — Delegado a FacturaService
   // ==========================================
 
-  async emitirFactura(dto: CreateFacturaDto): Promise<EmisionEncoladaResponseDto | FacturaResponseDto> {
-    const isAsync = this.configService.get<string>('SRI_EMISION_ASYNC') !== 'false';
-    if (!isAsync) {
-      return this.facturaService.emitirFactura(dto);
-    }
-    const job = await this.emisionQueue.add('emision', { tipo: 'FACTURA', dto });
-    this.logger.log(`Factura encolada con Job ID: ${job.id}`);
-    return {
-      mensaje: 'Factura encolada para emisión asíncrona',
-      jobId: job.id!,
-      estado: 'EN_COLA',
-    };
+  async emitirFactura(dto: CreateFacturaDto): Promise<FacturaResponseDto> {
+    return this.facturaService.emitirFactura(dto);
   }
 
   generarXmlPreview(dto: CreateFacturaDto): string {
@@ -85,18 +72,8 @@ export class SriService {
 
   async emitirNotaCredito(
     dto: CreateNotaCreditoDto,
-  ): Promise<EmisionEncoladaResponseDto | NotaCreditoResponseDto> {
-    const isAsync = this.configService.get<string>('SRI_EMISION_ASYNC') !== 'false';
-    if (!isAsync) {
-      return this.notaCreditoService.emitirNotaCredito(dto);
-    }
-    const job = await this.emisionQueue.add('emision', { tipo: 'NOTA_CREDITO', dto });
-    this.logger.log(`Nota de crédito encolada con Job ID: ${job.id}`);
-    return {
-      mensaje: 'Nota de crédito encolada para emisión asíncrona',
-      jobId: job.id!,
-      estado: 'EN_COLA',
-    };
+  ): Promise<NotaCreditoResponseDto> {
+    return this.notaCreditoService.emitirNotaCredito(dto);
   }
 
   // ==========================================
@@ -105,18 +82,8 @@ export class SriService {
 
   async emitirNotaDebito(
     dto: CreateNotaDebitoDto,
-  ): Promise<EmisionEncoladaResponseDto | NotaDebitoResponseDto> {
-    const isAsync = this.configService.get<string>('SRI_EMISION_ASYNC') !== 'false';
-    if (!isAsync) {
-      return this.notaDebitoService.emitirNotaDebito(dto);
-    }
-    const job = await this.emisionQueue.add('emision', { tipo: 'NOTA_DEBITO', dto });
-    this.logger.log(`Nota de débito encolada con Job ID: ${job.id}`);
-    return {
-      mensaje: 'Nota de débito encolada para emisión asíncrona',
-      jobId: job.id!,
-      estado: 'EN_COLA',
-    };
+  ): Promise<NotaDebitoResponseDto> {
+    return this.notaDebitoService.emitirNotaDebito(dto);
   }
 
   // ==========================================
@@ -125,18 +92,8 @@ export class SriService {
 
   async emitirRetencion(
     dto: CreateRetencionDto,
-  ): Promise<EmisionEncoladaResponseDto | RetencionResponseDto> {
-    const isAsync = this.configService.get<string>('SRI_EMISION_ASYNC') !== 'false';
-    if (!isAsync) {
-      return this.retencionService.emitirRetencion(dto);
-    }
-    const job = await this.emisionQueue.add('emision', { tipo: 'RETENCION', dto });
-    this.logger.log(`Retención encolada con Job ID: ${job.id}`);
-    return {
-      mensaje: 'Retención encolada para emisión asíncrona',
-      jobId: job.id!,
-      estado: 'EN_COLA',
-    };
+  ): Promise<RetencionResponseDto> {
+    return this.retencionService.emitirRetencion(dto);
   }
 
   // ==========================================
@@ -145,18 +102,8 @@ export class SriService {
 
   async emitirGuiaRemision(
     dto: CreateGuiaRemisionDto,
-  ): Promise<EmisionEncoladaResponseDto | GuiaRemisionResponseDto> {
-    const isAsync = this.configService.get<string>('SRI_EMISION_ASYNC') !== 'false';
-    if (!isAsync) {
-      return this.guiaRemisionService.emitirGuiaRemision(dto);
-    }
-    const job = await this.emisionQueue.add('emision', { tipo: 'GUIA_REMISION', dto });
-    this.logger.log(`Guía de remisión encolada con Job ID: ${job.id}`);
-    return {
-      mensaje: 'Guía de remisión encolada para emisión asíncrona',
-      jobId: job.id!,
-      estado: 'EN_COLA',
-    };
+  ): Promise<GuiaRemisionResponseDto> {
+    return this.guiaRemisionService.emitirGuiaRemision(dto);
   }
 
   // ==========================================

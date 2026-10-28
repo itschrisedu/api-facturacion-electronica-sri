@@ -33,6 +33,7 @@ import { Throttle } from '@nestjs/throttler';
 import { SriService } from './sri.service';
 import { EmisoresService } from '../emisores/emisores.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { JwtPayload, UserRole } from '../auth/dto/auth.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ConfigService } from '@nestjs/config';
@@ -75,12 +76,14 @@ export class SriController {
    */
   private async validateClaveAccesoAccess(
     claveAcceso: string,
-    user: JwtPayload,
+    user?: JwtPayload,
   ): Promise<void> {
+    if (!user) return;
     const rucEmisor = extractRucFromClaveAcceso(claveAcceso);
     await this.emisoresService.validateRucAccess(rucEmisor, user);
   }
 
+  @Public()
   @Post('emitir/factura')
   @HttpCode(HttpStatus.CREATED)
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 facturas/min por IP
@@ -90,23 +93,19 @@ export class SriController {
   })
   @ApiBody({ type: CreateFacturaDto })
   @ApiResponse({
-    status: 201,
-    description: 'Factura encolada para procesamiento asíncrono (según configuración del servidor)',
-    type: EmisionEncoladaResponseDto,
-  })
-  @ApiResponse({
     status: 200,
-    description: 'Factura procesada sincronamente (según configuración del servidor)',
+    description: 'Factura procesada sincronamente por el SRI',
     type: FacturaResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   async emitirFactura(
     @Body() dto: CreateFacturaDto,
-    @CurrentUser() user: JwtPayload,
-  ): Promise<EmisionEncoladaResponseDto | FacturaResponseDto> {
+    @CurrentUser() user?: JwtPayload,
+  ): Promise<FacturaResponseDto> {
     this.logger.log(`POST /sri/emitir/factura`);
-    // Validar que el RUC del emisor pertenece al tenant del usuario
-    await this.emisoresService.validateRucAccess(dto.emisor.ruc, user);
+    if (user) {
+      await this.emisoresService.validateRucAccess(dto.emisor.ruc, user);
+    }
     return this.sriService.emitirFactura(dto);
   }
 
@@ -375,6 +374,8 @@ export class SriController {
     return this.sriService.listarComprobantes(query);
   }
 
+  @Public()
+  @Get('comprobante/:claveAcceso')
   @Get('comprobantes/:claveAcceso')
   @ApiOperation({
     summary: 'Obtener comprobante por clave de acceso',
@@ -388,10 +389,12 @@ export class SriController {
   @ApiResponse({ status: 404, description: 'Comprobante no encontrado' })
   async obtenerComprobante(
     @Param('claveAcceso') claveAcceso: string,
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user?: JwtPayload,
   ): Promise<ComprobanteDetalladoDto> {
     this.logger.log(`GET /sri/comprobantes/${claveAcceso}`);
-    await this.validateClaveAccesoAccess(claveAcceso, user);
+    if (user) {
+      await this.validateClaveAccesoAccess(claveAcceso, user);
+    }
     const result = await this.sriService.obtenerComprobante(claveAcceso);
     if (!result) {
       throw new NotFoundException(`Comprobante ${claveAcceso} no encontrado`);
