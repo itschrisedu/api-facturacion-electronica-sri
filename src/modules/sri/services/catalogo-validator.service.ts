@@ -431,17 +431,113 @@ export class CatalogoValidatorService {
       }
 
       this.logger.log(
-        `Catálogos cargados: ${this.tarifasCache.size} tarifas, ` +
+        `Catálogos cargados desde BD: ${this.tarifasCache.size} tarifas, ` +
           `${this.retencionesCache.size} retenciones, ${this.formasPagoCache.size} formas pago, ` +
           `${this.tiposIdentificacionCache.size} tipos ident, ${this.documentosSustentoCache.size} docs sustento, ` +
           `${this.motivosTrasladoCache.size} motivos traslado`,
       );
     } catch (error) {
-      this.logger.error(
-        `Error cargando catálogos: ${(error as Error).message}`,
+      this.logger.warn(
+        `Tablas de catálogo no disponibles en BD (${(error as Error).message}). Usando catálogos estáticos del SRI.`,
       );
-      throw error;
+      this.loadStaticFallbackCatalogs();
     }
+  }
+
+  /**
+   * Catálogos estáticos oficiales del SRI Ecuador.
+   * Se usan como fallback cuando las tablas de catálogo no existen en la BD conectada.
+   */
+  private loadStaticFallbackCatalogs(): void {
+    // Tarifas IVA (código impuesto = '2')
+    this.tarifasCache.clear();
+    const tarifasIva: Array<{ cp: string; desc: string; pct: number }> = [
+      { cp: '0', desc: 'IVA 0%', pct: 0 },
+      { cp: '2', desc: 'IVA 12%', pct: 12 },
+      { cp: '3', desc: 'IVA 14%', pct: 14 },
+      { cp: '4', desc: 'IVA 15%', pct: 15 },
+      { cp: '5', desc: 'IVA 5%', pct: 5 },
+      { cp: '6', desc: 'No Objeto de Impuesto', pct: 0 },
+      { cp: '7', desc: 'Exento de IVA', pct: 0 },
+      { cp: '8', desc: 'IVA Diferenciado', pct: 0 },
+    ];
+    for (const t of tarifasIva) {
+      this.tarifasCache.set(`2-${t.cp}`, {
+        codigo_porcentaje: t.cp,
+        descripcion: t.desc,
+        porcentaje: t.pct,
+        impuesto_codigo: '2',
+        impuesto_nombre: 'IVA',
+      });
+    }
+
+    // Formas de pago SRI
+    this.formasPagoCache.clear();
+    const formasPago: Array<{ codigo: string; descripcion: string }> = [
+      { codigo: '01', descripcion: 'SIN UTILIZACION DEL SISTEMA FINANCIERO' },
+      { codigo: '15', descripcion: 'COMPENSACION DE DEUDAS' },
+      { codigo: '16', descripcion: 'TARJETA DE DEBITO' },
+      { codigo: '17', descripcion: 'DINERO ELECTRONICO' },
+      { codigo: '18', descripcion: 'TARJETA PREPAGO' },
+      { codigo: '19', descripcion: 'TARJETA DE CREDITO' },
+      { codigo: '20', descripcion: 'OTROS CON UTILIZACION DEL SISTEMA FINANCIERO' },
+      { codigo: '21', descripcion: 'ENDOSO DE TITULOS' },
+    ];
+    for (const fp of formasPago) {
+      this.formasPagoCache.set(fp.codigo, fp);
+    }
+
+    // Tipos de identificación SRI
+    this.tiposIdentificacionCache.clear();
+    const tiposIdent: Array<{ codigo: string; descripcion: string; longitud: number | null; regex_validacion: string | null }> = [
+      { codigo: '04', descripcion: 'RUC', longitud: 13, regex_validacion: '^\\d{13}$' },
+      { codigo: '05', descripcion: 'CEDULA', longitud: 10, regex_validacion: '^\\d{10}$' },
+      { codigo: '06', descripcion: 'PASAPORTE', longitud: null, regex_validacion: '^[A-Za-z0-9]+$' },
+      { codigo: '07', descripcion: 'CONSUMIDOR FINAL', longitud: 13, regex_validacion: '^9{13}$' },
+    ];
+    for (const ti of tiposIdent) {
+      this.tiposIdentificacionCache.set(ti.codigo, ti);
+    }
+
+    // Documentos sustento (los mas comunes)
+    this.documentosSustentoCache.clear();
+    const docsSustento: Array<{ codigo: string; descripcion: string }> = [
+      { codigo: '01', descripcion: 'FACTURA' },
+      { codigo: '02', descripcion: 'NOTA O BOLETA DE VENTA' },
+      { codigo: '03', descripcion: 'LIQUIDACION DE COMPRA DE BIENES O PRESTACION DE SERVICIOS' },
+      { codigo: '04', descripcion: 'NOTA DE CREDITO' },
+      { codigo: '05', descripcion: 'NOTA DE DEBITO' },
+      { codigo: '06', descripcion: 'GUIA DE REMISION' },
+      { codigo: '07', descripcion: 'COMPROBANTE DE RETENCION' },
+    ];
+    for (const ds of docsSustento) {
+      this.documentosSustentoCache.set(ds.codigo, ds);
+    }
+
+    // Motivos traslado (Guía Remisión)
+    this.motivosTrasladoCache.clear();
+    const motivosTraslado: Array<{ codigo: string; descripcion: string }> = [
+      { codigo: '01', descripcion: 'VENTA' },
+      { codigo: '02', descripcion: 'COMPRA' },
+      { codigo: '03', descripcion: 'TRANSFORMACION' },
+      { codigo: '04', descripcion: 'CONSIGNACION' },
+      { codigo: '05', descripcion: 'DEVOLUCION' },
+      { codigo: '06', descripcion: 'TRASLADO ENTRE ESTABLECIMIENTOS DE UNA MISMA EMPRESA' },
+      { codigo: '07', descripcion: 'TRASLADO PARA EXPORTACION' },
+      { codigo: '08', descripcion: 'OTROS' },
+    ];
+    for (const mt of motivosTraslado) {
+      this.motivosTrasladoCache.set(mt.codigo, mt);
+    }
+
+    // Retenciones (vacío por ahora, no se usan en facturación básica)
+    this.retencionesCache.clear();
+
+    this.logger.log(
+      `Catálogos estáticos cargados: ${this.tarifasCache.size} tarifas, ` +
+        `${this.formasPagoCache.size} formas pago, ${this.tiposIdentificacionCache.size} tipos ident, ` +
+        `${this.documentosSustentoCache.size} docs sustento, ${this.motivosTrasladoCache.size} motivos traslado`,
+    );
   }
 
   async forceRefreshCache(): Promise<void> {
