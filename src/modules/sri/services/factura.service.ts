@@ -60,7 +60,9 @@ export class FacturaService {
         dto.pagos && dto.pagos.length > 0
           ? this.base.validarFormasPagoCatalogo(dto.pagos)
           : Promise.resolve(),
-        this.repository.findEmisorByRuc(dto.emisor.ruc),
+        dto.firma?.archivoBase64
+          ? Promise.resolve(null)
+          : this.repository.findEmisorByRuc(dto.emisor.ruc),
       ]);
 
       // Variables de configuración

@@ -283,54 +283,58 @@ export class SriService {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async obtenerComprobante(claveAcceso: string): Promise<any> {
-    const comprobante =
-      await this.repository.findComprobanteConDetalles(claveAcceso);
-    if (!comprobante) {
-      return null;
+    try {
+      const comprobante =
+        await this.repository.findComprobanteConDetalles(claveAcceso);
+      if (!comprobante) {
+        return await this.consultarAutorizacion(claveAcceso);
+      }
+
+      const detalles = await this.repository.findDetallesByComprobanteId(
+        comprobante.id,
+      );
+      const infoAdicional =
+        await this.repository.findInfoAdicionalByComprobanteId(comprobante.id);
+
+      return {
+        id: comprobante.id,
+        claveAcceso: comprobante.clave_acceso,
+        tipoComprobante: comprobante.tipo_comprobante,
+        tipoComprobanteDescripcion:
+          TIPO_COMPROBANTE_DESCRIPCIONES[comprobante.tipo_comprobante] ||
+          comprobante.tipo_comprobante,
+        ambiente: comprobante.ambiente,
+        fechaEmision: comprobante.fecha_emision,
+        establecimiento: comprobante.establecimiento,
+        puntoEmision: comprobante.punto_emision,
+        secuencial: comprobante.secuencial,
+        rucEmisor: comprobante.ruc_emisor,
+        razonSocialEmisor: comprobante.razon_social_emisor,
+        identificacionComprador: comprobante.identificacion_comprador,
+        razonSocialComprador: comprobante.razon_social_comprador,
+        subtotal: parseFloat(comprobante.subtotal) || 0,
+        totalImpuestos: parseFloat(comprobante.total_impuestos) || 0,
+        total: parseFloat(comprobante.total) || 0,
+        estado: comprobante.estado,
+        fechaAutorizacion: comprobante.fecha_autorizacion,
+        numAutorizacion: comprobante.num_autorizacion,
+        createdAt: comprobante.created_at,
+        updatedAt: comprobante.updated_at,
+        detalles: detalles.map((d) => ({
+          id: d.id,
+          codigoPrincipal: d.codigo_principal,
+          descripcion: d.descripcion,
+          cantidad: parseFloat(d.cantidad) || 0,
+          precioUnitario: parseFloat(d.precio_unitario) || 0,
+          descuento: parseFloat(d.descuento) || 0,
+          subtotal: parseFloat(d.subtotal) || 0,
+        })),
+        infoAdicional,
+        xmlDisponible: comprobante.xml_disponible,
+      };
+    } catch {
+      return await this.consultarAutorizacion(claveAcceso);
     }
-
-    const detalles = await this.repository.findDetallesByComprobanteId(
-      comprobante.id,
-    );
-    const infoAdicional =
-      await this.repository.findInfoAdicionalByComprobanteId(comprobante.id);
-
-    return {
-      id: comprobante.id,
-      claveAcceso: comprobante.clave_acceso,
-      tipoComprobante: comprobante.tipo_comprobante,
-      tipoComprobanteDescripcion:
-        TIPO_COMPROBANTE_DESCRIPCIONES[comprobante.tipo_comprobante] ||
-        comprobante.tipo_comprobante,
-      ambiente: comprobante.ambiente,
-      fechaEmision: comprobante.fecha_emision,
-      establecimiento: comprobante.establecimiento,
-      puntoEmision: comprobante.punto_emision,
-      secuencial: comprobante.secuencial,
-      rucEmisor: comprobante.ruc_emisor,
-      razonSocialEmisor: comprobante.razon_social_emisor,
-      identificacionComprador: comprobante.identificacion_comprador,
-      razonSocialComprador: comprobante.razon_social_comprador,
-      subtotal: parseFloat(comprobante.subtotal) || 0,
-      totalImpuestos: parseFloat(comprobante.total_impuestos) || 0,
-      total: parseFloat(comprobante.total) || 0,
-      estado: comprobante.estado,
-      fechaAutorizacion: comprobante.fecha_autorizacion,
-      numAutorizacion: comprobante.num_autorizacion,
-      createdAt: comprobante.created_at,
-      updatedAt: comprobante.updated_at,
-      detalles: detalles.map((d) => ({
-        id: d.id,
-        codigoPrincipal: d.codigo_principal,
-        descripcion: d.descripcion,
-        cantidad: parseFloat(d.cantidad) || 0,
-        precioUnitario: parseFloat(d.precio_unitario) || 0,
-        descuento: parseFloat(d.descuento) || 0,
-        subtotal: parseFloat(d.subtotal) || 0,
-      })),
-      infoAdicional,
-      xmlDisponible: comprobante.xml_disponible,
-    };
   }
 
   /**

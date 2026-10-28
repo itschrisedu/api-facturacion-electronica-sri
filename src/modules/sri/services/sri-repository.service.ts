@@ -140,27 +140,32 @@ export class SriRepositoryService {
   // ==========================================
 
   async findEmisorByRuc(ruc: string): Promise<EmisorRecord | null> {
-    // Check cache first
-    const cached = this.emisorCache.get(ruc);
-    if (cached && Date.now() < cached.expiry) {
-      return cached.data;
+    try {
+      // Check cache first
+      const cached = this.emisorCache.get(ruc);
+      if (cached && Date.now() < cached.expiry) {
+        return cached.data;
+      }
+
+      // Query database
+      const emisor = await this.db.queryOne<EmisorRecord>(
+        'SELECT * FROM emisores WHERE ruc = $1 AND estado = $2',
+        [ruc, 'ACTIVO'],
+      );
+
+      // Store in cache if found
+      if (emisor) {
+        this.emisorCache.set(ruc, {
+          data: emisor,
+          expiry: Date.now() + this.CACHE_TTL_MS,
+        });
+      }
+
+      return emisor;
+    } catch (err: any) {
+      this.logger.warn(`findEmisorByRuc omitido o tabla inexistente: ${err.message}`);
+      return null;
     }
-
-    // Query database
-    const emisor = await this.db.queryOne<EmisorRecord>(
-      'SELECT * FROM emisores WHERE ruc = $1 AND estado = $2',
-      [ruc, 'ACTIVO'],
-    );
-
-    // Store in cache if found
-    if (emisor) {
-      this.emisorCache.set(ruc, {
-        data: emisor,
-        expiry: Date.now() + this.CACHE_TTL_MS,
-      });
-    }
-
-    return emisor;
   }
 
   async findPuntoEmision(
@@ -168,32 +173,37 @@ export class SriRepositoryService {
     establecimiento: string,
     puntoEmision: string,
   ): Promise<{ punto_emision_id: string; establecimiento_id: string } | null> {
-    // Check cache first
-    const cacheKey = `${emisorId}-${establecimiento}-${puntoEmision}`;
-    const cached = this.puntoEmisionCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiry) {
-      return cached.data;
+    try {
+      // Check cache first
+      const cacheKey = `${emisorId}-${establecimiento}-${puntoEmision}`;
+      const cached = this.puntoEmisionCache.get(cacheKey);
+      if (cached && Date.now() < cached.expiry) {
+        return cached.data;
+      }
+
+      // Query database
+      const result = await this.db.queryOne<any>(
+        `SELECT pe.id as punto_emision_id, e.id as establecimiento_id
+         FROM puntos_emision pe
+         JOIN establecimientos e ON pe.establecimiento_id = e.id
+         WHERE e.emisor_id = $1 AND e.codigo = $2 AND pe.codigo = $3
+         AND e.estado = 'ACTIVO' AND pe.estado = 'ACTIVO'`,
+        [emisorId, establecimiento, puntoEmision],
+      );
+
+      // Store in cache if found
+      if (result) {
+        this.puntoEmisionCache.set(cacheKey, {
+          data: result,
+          expiry: Date.now() + this.CACHE_TTL_MS,
+        });
+      }
+
+      return result;
+    } catch (err: any) {
+      this.logger.warn(`findPuntoEmision omitido o tabla inexistente: ${err.message}`);
+      return null;
     }
-
-    // Query database
-    const result = await this.db.queryOne<any>(
-      `SELECT pe.id as punto_emision_id, e.id as establecimiento_id
-       FROM puntos_emision pe
-       JOIN establecimientos e ON pe.establecimiento_id = e.id
-       WHERE e.emisor_id = $1 AND e.codigo = $2 AND pe.codigo = $3
-       AND e.estado = 'ACTIVO' AND pe.estado = 'ACTIVO'`,
-      [emisorId, establecimiento, puntoEmision],
-    );
-
-    // Store in cache if found
-    if (result) {
-      this.puntoEmisionCache.set(cacheKey, {
-        data: result,
-        expiry: Date.now() + this.CACHE_TTL_MS,
-      });
-    }
-
-    return result;
   }
 
   // ==========================================
