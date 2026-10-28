@@ -93,6 +93,13 @@ export class CreateFacturaDto {
   @IsOptional()
   @IsString()
   guiaRemision?: string;
+
+  @ApiPropertyOptional({ description: 'Certificado P12 en Base64 con contraseña para firma en memoria' })
+  @IsOptional()
+  firma?: {
+    archivoBase64: string;
+    password?: string;
+  };
 }
 
 export class FacturaResponseDto {

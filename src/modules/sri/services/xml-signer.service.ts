@@ -144,6 +144,18 @@ export class XmlSignerService implements OnModuleInit {
     this.logger.log('Certificado P12 cargado y procesado exitosamente');
   }
 
+  /**
+   * Carga el certificado P12 desde buffer en memoria y firma el XML directamente
+   */
+  async signXmlWithBuffer(
+    xmlString: string,
+    p12Buffer: Buffer,
+    password: string,
+  ): Promise<string> {
+    await this.loadCertificateFromBuffer(p12Buffer, password);
+    return this.signXml(xmlString);
+  }
+
   async signXml(xmlString: string): Promise<string> {
     if (!this.privateKey || !this.certificate) {
       throw new Error(

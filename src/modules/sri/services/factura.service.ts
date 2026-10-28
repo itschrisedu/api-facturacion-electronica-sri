@@ -125,23 +125,35 @@ export class FacturaService {
       );
       const xml = this.xmlBuilderService.buildFactura(factura);
 
-      // Verificar certificado
-      if (
-        !emisor ||
-        !emisor.certificado_nombre ||
-        !emisor.certificado_password_encrypted
-      ) {
-        throw new BadRequestException(
-          `El emisor con RUC ${dto.emisor.ruc} no tiene certificado digital configurado. ` +
-            'Use el endpoint POST /certificates/upload-cert con el RUC para vincular un certificado P12.',
+      // Firmar XML (usar buffer si se envió directamente en el DTO o cargar de BD)
+      let xmlFirmado: string;
+      if (dto.firma?.archivoBase64) {
+        this.logger.log(`Firmando XML con certificado P12 enviado en la petición para RUC ${dto.emisor.ruc}`);
+        const p12Buffer = Buffer.from(dto.firma.archivoBase64, 'base64');
+        xmlFirmado = await this.xmlSignerService.signXmlWithBuffer(
+          xml,
+          p12Buffer,
+          dto.firma.password || '',
+        );
+      } else {
+        // Verificar certificado en BD
+        if (
+          !emisor ||
+          !emisor.certificado_nombre ||
+          !emisor.certificado_password_encrypted
+        ) {
+          throw new BadRequestException(
+            `El emisor con RUC ${dto.emisor.ruc} no tiene certificado digital configurado. ` +
+              'Use el endpoint POST /certificates/upload-cert con el RUC para vincular un certificado P12.',
+          );
+        }
+
+        // Firmar XML
+        xmlFirmado = await this.xmlSignerService.signXmlForEmisor(
+          xml,
+          dto.emisor.ruc,
         );
       }
-
-      // Firmar XML
-      const xmlFirmado = await this.xmlSignerService.signXmlForEmisor(
-        xml,
-        dto.emisor.ruc,
-      );
 
       // Enviar y autorizar en SRI (puede tardar 2-10 segundos — sin bloquear DB)
       let resultado: SriOperationResult;
